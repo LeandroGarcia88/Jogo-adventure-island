@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Adventure Island</title>
+	</head>
+	<body>
+
+		<style type="text/css">
+
+		#stage{
+			position: relative;
+			width: 384px;
+			height: 384px;
+			background-image: url(images/background.png);
+
+		}
+		
+		.cell {
+			display: block;
+			position: absolute;
+			width: 64px;
+			height: 64px;
+		}
+
+		p {
+			width: 400px;
+		}
+
+		</style>
+
+		<div id="stage"></div>
+		<p id="output"></p>
+
+		
+
+		<script type="text/javascript">
+
+		// Pegando a referencia da stage e do output
+		var stage = document.querySelector("#stage")
+		var output = document.querySelector("#output")
+
+		window.addEventListener("keydown", keydownHandler, false)
+
+		// O mapa do jogo
+		var map = 
+		[
+		  [0, 2, 0, 0, 0, 3],
+		  [0, 0, 0, 1, 0, 0],
+		  [0, 1, 0, 0, 0, 0],
+		  [0, 0, 0, 0, 2, 0],
+		  [0, 2, 0, 1, 0, 0],
+		  [0, 0, 0, 0, 0, 0]
+		]
+
+		// adicionando o navio
+		var gameObjects =
+		[
+		  [0, 0, 0, 0, 0, 0],
+		  [0, 0, 5, 0, 0, 0],
+		  [0, 0, 0, 0, 0, 0],
+		  [0, 0, 0, 0, 0, 0],
+		  [0, 2, 0, 0, 0, 0],
+		  [4, 0, 0, 0, 0, 0]
+		] 
+		
+		var WATER = 0
+		var ISLAND = 1
+		var PIRATE = 2
+		var HOME = 3
+		var SHIP = 4
+		var MOSTER = 5
+
+		var UP = 38
+		var DOWN = 40
+		var RIGHT = 39
+		var LEFT = 37
+
+
+		// O tamanho das celulas
+		var SIZE = 64
+
+		// O número de rows e columns
+		var ROWS = map.length
+		var COLUMNS = map[0].length
+
+		var shipRow = ""
+		var shipColumn = ""
+		var mosterRow = ""
+		var mosterColumn = ""
+
+		var food = 10
+		var gold = 10
+		var experience = 0
+		var gameMessage = "Use as setas do teclado para encontrar o caminho de casa."
+
+		for(var row = 0; row < ROWS; row++)
+		{
+			for(var column = 0; column < COLUMNS; column++)
+			{
+				if(gameObjects[row][column] === SHIP)
+				{
+					shipRow = row
+					shipColumn = column
+				}
+				if(gameObjects[row][column] === MOSTER)
+				{
+					monsterRow = row
+					monsterColumn = column
+				}
+			}
+		}
+
+		render()
+
+
+		function keydownHandler(event)
+		{
+			switch(event.keyCode)
+			{
+				case UP:
+				//descobrindo se o movimento do navio será dentro do campo do jogador
+				if(shipRow > 0)
+				{
+					//se for, limpe a celula atual do navio
+					gameObjects[shipRow][shipColumn] = 0
+
+					//subtrai 1 para mover o navio para cima no mapa
+					shipRow--
+
+					//aplica a nova posição atualizada do navio
+					gameObjects[shipRow][shipColumn] = SHIP
+				}
+				break
+
+				case DOWN:
+				if(shipRow < ROWS - 1)
+				{
+					gameObjects[shipRow][shipColumn] = 0
+					shipRow++
+					gameObjects[shipRow][shipColumn] = SHIP
+				}
+				break
+
+				case LEFT:
+				if(shipColumn > 0)
+				{
+					gameObjects[shipRow][shipColumn] = 0
+					shipColumn--
+					gameObjects[shipRow][shipColumn] = SHIP
+				}
+				break
+
+				case RIGHT:
+				if(shipColumn < COLUMNS - 1)
+				{
+					gameObjects[shipRow][shipColumn] = 0
+					shipColumn++
+					gameObjects[shipRow][shipColumn] = SHIP
+				}
+				break
+				
+			}
+
+			switch(map[shipRow][shipColumn])
+			{
+				case WATER:
+				gameMessage = "Você esta navegando em mar aberto."
+				console.log("water")
+				break
+
+				case PIRATE:
+				fight()
+				console.log("pirate")
+				break
+
+				case ISLAND:
+				trade()
+				console.log("island")
+				break
+
+				case HOME:
+				endGame()
+				console.log("home")
+			}
+
+			//mova o monstro
+			moveMonster()
+
+			//descobrindo se o navio e o monstro colidiram
+			if(gameObjects[shipRow][shipColumn] === MOSTER)
+			{
+				endGame()
+			}
+
+
+			//subtraia comida (food)
+			food--
+
+			if(food <= 0 || gold <= 0)
+			{
+				endGame()
+			}
+
+			
+
+
+			//renderizar
+			render()
+		}
+		
+
+
+
+
+
+
+
+
+
+		function render(){
+			// limpa a stage da tag img das celulas
+			// do turno anterior(reset)
+			if(stage.hasChildNodes())
+			{
+				for(var i = 0; i < ROWS * COLUMNS; i++)
+				{
+					stage.removeChild(stage.firstChild)
+				}
+			}
+
+			//Renderizando o jogo ao fazer o looping através do mapa de arrays
+			for(var row = 0; row < ROWS; row++){
+				for(var columns = 0; columns < COLUMNS; columns++){
+					
+					//crie uma tag do tipo img chamada cell
+					var cell = document.createElement("img")
+
+					//definindo uma classe CSS para a cell
+					cell.setAttribute("class", "cell")
+
+					//adicionado a tag img a <div id "stage"></div>
+					stage.appendChild(cell)
+
+					//encontrando a imagem correta para o mapa
+					switch(map[row][columns])
+					{
+						
+						case WATER:
+						cell.src = "images/water.png"
+						break
+
+						case ISLAND:
+						cell.src = "images/island.png"
+						break
+
+						case PIRATE:
+						cell.src = "images/pirate.png"
+						break
+
+						case HOME:
+						cell.src = "images/home.png"
+						break
+					}
+
+
+
+					switch(gameObjects[row][columns])
+					{
+						//adicionando a imagem do navio
+						case SHIP:
+						cell.src = "images/ship.png"
+						break
+
+						case MOSTER:
+						cell.src = "images/monster.png"
+						break
+					}
+
+						//Posicionando a cell
+						cell.style.top = row * SIZE + "px"
+						cell.style.left = columns * SIZE + "px"
+				}
+
+			}
+
+			//o código que renderiza o array
+
+			//mostarndo o gameMessage
+			output.innerHTML = gameMessage
+
+			//mostrando a comida ouro e experiência do jogador
+			output.innerHTML += "<br>Ouro: " + gold + ", Comida: " + food
+			+ ", Experiência: " + experience 
+
+		}
+
+
+		function trade()
+		{	//descobrindo o quanto de comida a ilha tem e seu custo
+			var islandsFood = experience + gold
+			var cost = Math.ceil(Math.random() * islandsFood)
+
+			//permita que o jogador compre comida caso tenha dinheiro suficiente.
+			if(gold > cost)
+			{
+				food += islandsFood
+				gold -= cost
+				experience += 2
+
+				gameMessage = "Você comprou " + islandsFood + " coco verde " + "por " + cost + " peças de ouro."
+			}
+			else
+			{
+				//informe o jogador que ele não possui dinheiro o suficiente
+				experience += 1
+				gameMessage = "Você não tem ouro o suficiente para comprar comida."
+			}
+		}
+
+
+		function fight()
+		{
+			//a força do navio
+			var shipStrength = Math.ceil((food + gold) / 2)
+
+			//força dos piratas
+			var pirateStrength = Math.ceil(Math.random() * shipStrength * 2)
+
+			//descobrindo se a força dos piratas é maior que a do navio
+			if(pirateStrength > shipStrength)
+			{
+				//os piratas saqueiam o navio
+				var stolenGold = Math.round(pirateStrength / 2)
+				gold -= stolenGold
+
+				// dando ao jogador alguma experiencia por tentar
+				experience += 1
+
+				//atualizando o gameMessage
+				gameMessage = "Você lutou e pedeu " + stolenGold + " peças de ouro." + "<br>" +
+				"força do navio: " + shipStrength + 
+				" força dos piratas: " + pirateStrength
+
+			}
+			else
+			{
+				//o jogador ganha o ouro dos piratas
+				var pirateGold = Math.round(pirateStrength / 2)
+				gold += pirateGold
+
+				//acrescentado experiência
+				experience += 2
+
+				//atualizando o gameMessage
+				gameMessage = "Você lutou e ganhou " + pirateGold + " peças de ouro." + "<br>" +
+				"força do navio: " + shipStrength + 
+				" força dos piratas: " + pirateStrength
+
+
+			}
+		}
+
+
+		function endGame()
+		{
+			if(map[shipRow][shipColumn] === HOME)
+			{
+				//calcule a pontuação
+				var score = food + gold + experience
+
+				gameMessage = "Você chegou vivo em casa! " + "<br>" + "Pontuação final: " + score
+			}
+			else if(gameObjects[shipRow][shipColumn] === MOSTER)
+			{
+				gameMessage = "Seu navio foi engolido por um monstro marinho!"
+
+			}
+
+			else
+			{
+				//caso o ouro ou a comida tenha acabado
+				if(gold < 0)
+				{
+					gameMessage += " Você ficou sem peças de ouro."
+				}
+				else
+				{
+					gameMessage += "Você ficou sem comida. " + "<br>"
+				}
+				gameMessage += "A tripulação te jogou para fora do navio!"
+			}
+
+			//remova os comandos do jogo 
+			window.removeEventListener("keydown", keydownHandler, false)
+		}
+
+
+		function moveMonster()
+		{
+			//as 4 direçoes possiveis que o mostro pode se mover
+			var UP = 1
+			var DOWN = 2
+			var LEFT = 3
+			var RIGTH = 4
+
+			//um array para armazenar direçoes validas para mostro
+			var validDirection = []
+
+			//a direção final para a qual o mostro irá se mover
+			var direction = undefined
+
+			//descobrindo quais os tipos de celulas que estão ao redor do monstro
+			//para validação da direção a ser seguida
+			if(monsterRow > 0)
+			{
+				var thingAbove = map[monsterRow - 1][monsterColumn]
+
+				if(thingAbove === WATER)
+				{
+					validDirection.push(UP)
+				}
+			}
+			if(monsterRow < ROWS - 1)
+			{
+				var thingsBelow = map[monsterRow + 1][monsterColumn]
+				if(thingsBelow === WATER)
+				{
+					validDirection.push(DOWN)
+				}
+			}
+			if(monsterColumn > 0)
+			{
+				var thingToTheLeft = map[monsterRow][monsterColumn - 1]
+				if(thingToTheLeft === WATER)
+				{
+					validDirection.push(LEFT)
+				}
+			}
+			if(monsterColumn < COLUMNS - 1)
+			{
+				var thingsToTheRIGTH = [monsterRow][monsterColumn + 1]
+				if(thingsToTheRIGTH === WATER)
+				{
+					validDirection.push(RIGTH)
+				}
+			}
+
+			//O array de validação agora contém de 0 a 4 direções
+			// que possuem as celulas WATER. Quais dessas direções
+			//o mostro ira escolher para se movimentar?
+
+			//Se uma direção valida foi encontrada, aleatoriamente
+			//escolha uma das possiveis direções e coloque em uma
+			//variavel.
+			if(validDirection !== 0)
+			{
+				var randomNumber = Math.floor(Math.random() * validDirection.length)
+				var direction = validDirection[randomNumber]
+			}
+
+			//Movimentando o mostro na direção aleatória
+			switch(direction)
+			{
+				case UP:
+				//Limpe a celula atual do monstro
+				gameObjects[monsterRow][monsterColumn] = 0
+
+				//subtrai 1 da monsterRow
+				monsterRow--
+
+				//Aplique a atualização na nova posição do monstro no array
+				gameObjects[monsterRow][monsterColumn] = MOSTER
+				break
+
+				case DOWN:
+				gameObjects[monsterRow][monsterColumn] = 0
+				monsterRow++
+				gameObjects[monsterRow][monsterColumn] = MOSTER
+				break
+
+				case LEFT:
+				gameObjects[monsterRow][monsterColumn] = 0
+				monsterRow--
+				gameObjects[monsterRow][monsterColumn] = MOSTER
+				break
+
+				case RIGHT:
+				gameObjects[monsterRow][monsterColumn] = 0
+				monsterRow++
+				gameObjects[monsterRow][monsterColumn] = MOSTER
+				break
+
+			}
+
+		}
+
+	
+
+		</script>
+
+	</body>
+</html>
